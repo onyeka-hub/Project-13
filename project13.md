@@ -120,7 +120,7 @@ In the same version, variants of **import** were also introduces, such as:
 - import_role
 - import_tasks
 
-2. We made use of a **special variables** `{ playbook_dir }` and `{ inventory_file }`. `{ playbook_dir }` will help Ansible to determine the location of the running playbook, and from there navigate to other path on the filesystem. `{ inventory_file }` on the other hand will dynamically resolve to the name of the inventory file being used, then append **.yml** so that it picks up the required file within the env-vars folder.
+2. We made use of a **special variables** `{ playbook_dir }`. `{ playbook_dir }` will help Ansible to determine the location of the running playbook, and from there navigate to other path on the filesystem. 
 
 3. We are including the variables using a loop. **with_first_found** implies that, looping through the list of files, the first one found is used. This is good so that we can always set default values in case an environment specific env file does not exist.
 
@@ -426,10 +426,13 @@ ansible-playbook -i inventory/uat.yml playbooks/site.yml
 ![screenshot of the first successful play](./images/goodplay9.PNG)
 
 ## Blockers
+    
 When i checked for the uat-webservers ip address in the /etc/hosts file, I could not find the address of one the two uat-webservers (sudo cat /etc/hosts)
 
+    
 ![second ip of the uat-webservers missing](./images/hosts-issue.PNG)
 
+    
 I had to edit the part of the nginx/tasks/main.yml like this
 
 ```
@@ -443,6 +446,7 @@ I had to edit the part of the nginx/tasks/main.yml like this
     - { name: web2, ip: 172.31.44.202 }
 ```
 
+    
 ![screenshot of the above play](./images/hosts-issue2.PNG)
 
 ![screenshot of the above play](./images/hosts-issue3.PNG)
@@ -473,8 +477,10 @@ I had to edit the part of the nginx/tasks/main.yml like this
 
 ![screenshot of the above play](./images/hosts-issue16.PNG)
 
+    
 Though the problem persisted but with other troubleshooting the issue was resolved
 
+    
 ![missing ip address](./images/2nd-hosts-issue.PNG)
 
 ![error message](./images/2nd-hosts-issue2.PNG)
@@ -483,16 +489,21 @@ Though the problem persisted but with other troubleshooting the issue was resolv
 
 ![the summary of the play](./images/2nd-hosts-issue4.PNG)
 
+    
 Checking for /etc/hosts file 
 
+    
 ![/etc/hosts file showing the two addresses](./images/2nd-hosts-issue-success.PNG)
 
+    
 ## Nginx Loadbalancer Failure
 
 After shutting down my system after the days work, on booting up my system on the following day, I noticed that nginx loadbalancer is down and when I tried restarting it was giving me this error
 
+    
 ![ngin error](./images/nginx-failed.PNG)
 
+    
 So i had to run a test command checking for the syntax error on the /etc/nginx/nginx.conf with these two commands, it gave me where the issue is comming from:
 
 ```
@@ -501,8 +512,10 @@ sudo nginx -t
 sudo nginx -t -c /etc/nginx/nginx.conf
 ```
 
+    
 ![nginx failure reason](./images/nginx-failed2.PNG)
 
+    
 I went to the /etc/nginx/nginx.conf file and commented out the portion for the "server proxy_pass http://myapp1;"
 
 So that my loadbalancer can be able to send traffic to my webservers , I have to insert following configuration into http section:
@@ -522,6 +535,7 @@ And also commented out this line below in the above /etc/nginx/nginx.conf file
 
 I restarted nginx, checked for syntax error, checked the status, checked the browser and everything works fine.
 
+    
 ![nginx laodbalancer ok](./images/nginx-ok.PNG)
 
 ![ngixn page on browser](./images/nginx-page.PNG)
