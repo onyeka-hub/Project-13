@@ -93,18 +93,10 @@ Now paste the instruction below into the **env-vars.yml** file.
             - prod.yml
             - uat.yml
           paths:
-            - "{{ playbook_dir }}/../env-vars/{{ inventory_file }}.yml"
+            - "{{ playbook_dir }}/../env-vars"
       tags:
         - always
 
-
-# - name: collate variables from env specific file, if it exists
-#   include_vars: "{{ item }}"
-#   with:
-#     - "{{ playbook_dir }}/../env_vars/{{ inventory_file }}.yml"
-#     - "{{ playbook_dir }}/../env_vars/default.yml"
-#   tags:
-#     - always
 ```
 
 Notice 3 things to here:
