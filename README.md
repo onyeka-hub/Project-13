@@ -79,7 +79,7 @@ Your layout should now look like this.
 
 Now paste the instruction below into the **env-vars.yml** file.
 
-```
+```yaml
 ---
 - name: collate variables from env specific file, if it exists
   hosts: all
@@ -122,7 +122,7 @@ Update **site.yml** file to make use of the dynamic assignment. (At this point, 
 
 **site.yml** should now look like this.
 
-```
+```yaml
 - hosts: all
   become: true
 - name: Include dynamic variables
@@ -165,7 +165,7 @@ Read the **README.md** file, and edit the roles configuration to use correct cre
 
 Update the defaults/main.yml file with this below
 
-```
+```yaml
 # Databases.
 mysql_databases:
    - name: tooling
@@ -186,7 +186,7 @@ mysql_users:
 
 `db.yml` file
 
-```
+```yaml
 ---
 - hosts: db
   become: yes
@@ -229,7 +229,7 @@ Read the **README.md** file, and edit the roles configuration to use correct cre
 
 Update the defaults/main.yml file with this below
 
-```
+```yaml
 nginx_upstreams: 
  - name: myapp1
    strategy: "ip_hash" # "least_conn", etc.
@@ -251,7 +251,7 @@ load_balancer_is_required: false
 
 Handlers/main.yml with this
 
-```
+```yaml
 ---
 - name: restart nginx
   become: yes
@@ -268,7 +268,7 @@ Handlers/main.yml with this
 ```
 tasks/main.yml with this
 
-```
+```yaml
 # Vhost configuration.
 - import_tasks: vhosts.yml
 
@@ -307,12 +307,12 @@ tasks/main.yml with this
 
 Update the defaults/main.yml with this
 
-```
+```yaml
 # Apache package state; use `present` to make sure it's installed, or `latest`
 # if you want to upgrade or switch versions using a new repo.
 apache_packages_state: present
 
-enable_nginx_lb: false
+enable_apache_lb: false
 load_balancer_is_required: false
 
 #webservers
@@ -331,11 +331,11 @@ web2: "private-ip weight=3"
 
 - Declare another variable in both roles `load_balancer_is_required` and set its value to `false` as well
 
-- Update both static-assignment and site.yml files respectively
+- Update the static-assignment with **loadbalancers.yml** file and site.yml files as below
 
 `loadbalancers.yml` file
 
-```
+```yaml
 - hosts: lb
   roles:
     - { role: nginx, when: enable_nginx_lb and load_balancer_is_required }
@@ -344,7 +344,7 @@ web2: "private-ip weight=3"
 
 `site.yml file`
 
-```
+```yaml
 ---
 - name: importing common file
   become: true
@@ -441,15 +441,16 @@ When i checked for the uat-webservers ip address in the /etc/hosts file, I could
     
 I had to edit the part of the nginx/tasks/main.yml like this
 
-```
+```yaml
 - name: set webservers host name in /etc/hosts
   become: yes
-  ansible.builtin.lineinfile:
+  blockinfile: 
     path: /etc/hosts
-    line: "{{ item.ip }} {{ item.name }}"
-  with_items:
-    - { name: web1, ip: 172.31.45.94 }
-    - { name: web2, ip: 172.31.44.202 }
+    block: |
+      {{ item.ip }} {{ item.name }}
+  loop:
+    - { name: web1, ip: 172.31.32.173 }
+    - { name: web2, ip: 172.31.41.0 }
 ```
 
     
@@ -512,7 +513,7 @@ After shutting down my system after the days work, on booting up my system on th
     
 So i had to run a test command checking for the syntax error on the /etc/nginx/nginx.conf with these two commands, it gave me where the issue is comming from:
 
-```
+```yaml
 sudo nginx -t
 
 sudo nginx -t -c /etc/nginx/nginx.conf
@@ -526,12 +527,12 @@ I went to the /etc/nginx/nginx.conf file and commented out the portion for the "
 
 So that my loadbalancer can be able to send traffic to my webservers , I have to insert following configuration into http section:
 
-```
+```yaml
 server {
     listen 80;
     server_name www.domain.com;
     location / {
-      proxy_pass http://myproject;
+      proxy_pass http://myapp1;
     }
   }
 ```
@@ -548,4 +549,3 @@ I restarted nginx, checked for syntax error, checked the status, checked the bro
 
 ## End of Project 13
 
-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
