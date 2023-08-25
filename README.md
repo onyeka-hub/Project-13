@@ -221,7 +221,6 @@ ansible-galaxy install geerlingguy.apache
 mv geerlingguy.nginx/ nginx
 mv geerlingguy.apache/ apache
 ```
-![nginx and apache role downloaded and renamed](./images/nginx-apache-downloaded.PNG)
 
 Read the **README.md** file, and edit the roles configuration to use correct credentials for apache and nginx as follows:
 
