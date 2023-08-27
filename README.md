@@ -235,8 +235,7 @@ nginx_upstreams:
    keepalive: 16 # optional
    servers: {
        "web1 weight=3",
-       "web2 weight=3",
-       "proxy_pass http://myapp1"
+       "web2 weight=3"
      }
 
 nginx_log_format: |
@@ -443,13 +442,13 @@ I had to edit the part of the nginx/tasks/main.yml like this
 ```yaml
 - name: set webservers host name in /etc/hosts
   become: yes
-  blockinfile: 
+  blockinfile:
     path: /etc/hosts
     block: |
       {{ item.ip }} {{ item.name }}
   loop:
-    - { name: web1, ip: 172.31.32.173 }
-    - { name: web2, ip: 172.31.41.0 }
+    - { name: "web1", ip: "172.31.5.101" }
+    - { name: "web2", ip: "172.31.4.83" }
 ```
 
     
@@ -484,9 +483,20 @@ I had to edit the part of the nginx/tasks/main.yml like this
 ![screenshot of the above play](./images/hosts-issue16.PNG)
 
     
-Though the problem persisted but with other troubleshooting the issue was resolved
+Though the problem persisted. I ssh into the loadbalancer server and ran the below commands:
+```
+systemctl status nginx.service
+journalctl -xeu nginx.service
+```
+Nginx was unable to start.
 
-    
+![journalctl command](./images/journalctl%20command.PNG)
+
+
+I checked Nginx's error log files for more specific error messages at /var/log/nginx/error.log and i saw this error : "[emerg] 54231#54231: host not found in upstream "web1" in /etc/nginx/nginx.conf:44"
+
+Checked for /etc/hosts file and noticed that there is no entry for web1 with its ip address 
+
 ![missing ip address](./images/2nd-hosts-issue.PNG)
 
 ![error message](./images/2nd-hosts-issue2.PNG)
@@ -495,10 +505,8 @@ Though the problem persisted but with other troubleshooting the issue was resolv
 
 ![the summary of the play](./images/2nd-hosts-issue4.PNG)
 
-    
 Checking for /etc/hosts file 
 
-    
 ![/etc/hosts file showing the two addresses](./images/2nd-hosts-issue-success.PNG)
 
     
@@ -526,14 +534,23 @@ I went to the /etc/nginx/nginx.conf file and commented out the portion for the "
 
 So that my loadbalancer can be able to send traffic to my webservers , I have to insert following configuration into http section:
 
-```yaml
+checking and editing the /etc/nginx/nginx.conf file
+```
+upstream myapp1 {
+    ip_hash;
+    server web1 weight=3;
+    server web2 weight=3;
+    keepalive 16;
+}
+
 server {
     listen 80;
-    server_name www.domain.com;
+    server_name http://18.119.166.164;
+
     location / {
-      proxy_pass http://myapp1;
+        proxy_pass http://myapp1;  # Use the upstream here
     }
-  }
+}
 ```
 
 And also commented out this line below in the above /etc/nginx/nginx.conf file
