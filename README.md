@@ -2,6 +2,8 @@
 
 ## ANSIBLE DYNAMIC ASSIGNMENTS (INCLUDE) AND COMMUNITY ROLES
 
+For more updated configuration files use: https://github.com/onyeka-hub/ansible-config-mgt-redo.git
+
 **IMPORTANT NOTICE**: Ansible is an actively developing software project, so you are encouraged to visit **Ansible Documentation https://docs.ansible.com/** for the latest updates on modules and their usage.
 
 Last 2 projects have already equipped us with some knowledge and skills on Ansible, so we can perform configurations using **playbooks, roles and imports**. Now we will continue configuring your UAT servers learning and practicing new Ansible concepts and modules.
@@ -152,11 +154,19 @@ Then go to **‘ansible-config-mgt’** directory and
 Inside roles directory create your new MySQL role with this command:
 
 ```
-ansible-galaxy install geerlingguy.mysql
+sudo ansible-galaxy install geerlingguy.mysql
+```
+Check the Default Role Path. You can check the default role path where Ansible installs roles for your user by running:
+```
+ansible-config dump | grep DEFAULT_ROLES_PATH
 ```
 
- and rename the folder to **mysql** with this command
+Confirm Installation. To further confirm that the role has been installed, you can use the ansible-galaxy list command:
+```
+ansible-galaxy list
+```
 
+Rename the folder to **mysql** with this command
 ```
 mv geerlingguy.mysql/ mysql
 ```
@@ -272,13 +282,13 @@ tasks/main.yml with this
 
 - name: set webservers host name in /etc/hosts
   become: yes
-  blockinfile: |
+  blockinfile:
     path: /etc/hosts
-    block: |
-      {{ item.ip }} {{ item.name }}
+    block: "{{ item.ip }} {{ item.name }}"
   loop:
-    - { name:web1, ip:private-ip }
-    - { name:web2, ip:private-ip }
+    - { name: "web1", ip: "172.31.20.10" }
+    - { name: "web2", ip: "172.31.19.72" }
+    
     
 # Nginx setup.
 - name: Copy nginx configuration in place.
@@ -335,6 +345,7 @@ web2: "private-ip weight=3"
 
 ```yaml
 - hosts: lb
+  become: yes
   roles:
     - { role: nginx, when: enable_nginx_lb and load_balancer_is_required }
     - { role: apache, when: enable_apache_lb and load_balancer_is_required }
@@ -347,20 +358,11 @@ web2: "private-ip weight=3"
 - name: importing common file
   become: true
   import_playbook: ../static-assignments/common.yml
-#  import_playbook: ../dynamic-assignments/env-vars.yml
   tags:
     - always
 
 - name: uat-webserver assignment
   import_playbook: ../static-assignments/uat-webservers.yml
-
-# -  name: Include dynamic variables
-# -  hosts: all
-# -  import_playbook: ../static-assignments/common.yml
-# -  import_playbook: ../dynamic-assignments/env-vars.yml
-#    tags:
-#       -  always
-
 
 - name: include env-vars file
   import_playbook: ../dynamic-assignments/env-vars.yml
@@ -408,6 +410,19 @@ cd ansible-config-mgt
 
 ansible-playbook -i inventory/uat.yml playbooks/site.yml
 ```
+# Blocker
+
+![ansible.builtin extra params](./images/ansible-builtin-extra-params.PNG)
+
+I removed the ansible.builtin in front of all the plays in roles/mysql/tasks/main.yml file, in front of name: Include OS-specific variables play in /roles/mysql/tasks/variables.yml. Removed other ansible.builtin command before in front of any play according to the error message. The same with the below error
+
+![disallow root login](./images/error-disallow-remote-login.PNG)
+
+The below error came up and according to the README.md file, I ssh into the db server, located the /etc/my.cnf file, uncommented and updated the password to passwor= '' and rerun the playbook with mysql_root_password_update: yes in the defaults/main.yml.
+
+![remove test db](./images/error-access-denial-remove-test-db.PNG)
+
+Successful plays
 
 ![screenshot of the first successful play](./images/goodplay.PNG)
 
@@ -444,11 +459,10 @@ I had to edit the part of the nginx/tasks/main.yml like this
   become: yes
   blockinfile:
     path: /etc/hosts
-    block: |
-      {{ item.ip }} {{ item.name }}
+    block: "{{ item.ip }} {{ item.name }}"
   loop:
-    - { name: "web1", ip: "172.31.5.101" }
-    - { name: "web2", ip: "172.31.4.83" }
+    - { name: "web1", ip: "172.31.20.10" }
+    - { name: "web2", ip: "172.31.19.72" }
 ```
 
     
@@ -529,8 +543,6 @@ sudo nginx -t -c /etc/nginx/nginx.conf
     
 ![nginx failure reason](./images/nginx-failed2.PNG)
 
-    
-I went to the /etc/nginx/nginx.conf file and commented out the portion for the "server proxy_pass http://myapp1;"
 
 So that my loadbalancer can be able to send traffic to my webservers , I have to insert following configuration into http section:
 
@@ -545,7 +557,7 @@ upstream myapp1 {
 
 server {
     listen 80;
-    server_name http://18.119.166.164;
+    server_name http://3.9.174.138; # load balancer public ip
 
     location / {
         proxy_pass http://myapp1;  # Use the upstream here
@@ -556,7 +568,7 @@ server {
 And also commented out this line below in the above /etc/nginx/nginx.conf file
 #       include /etc/nginx/sites-enabled/*;
 
-I restarted nginx, checked for syntax error, checked the status, checked the browser and everything works fine.
+I checked for syntax error, restarted nginx, checked the status, checked the browser and everything works fine.
 
     
 ![nginx laodbalancer ok](./images/nginx-ok.PNG)
