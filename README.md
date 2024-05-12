@@ -241,7 +241,7 @@ Update the defaults/main.yml file with this below
 ```yaml
 nginx_upstreams: 
  - name: myapp1
-   strategy: "ip_hash" # "least_conn", etc.
+   Onu: "ip_hash" # "least_conn", etc.
    keepalive: 16 # optional
    servers: {
        "web1 weight=3",
